@@ -13,9 +13,9 @@ CLIENT_ID = "433202543531394"
 FACEBOOK_URL = "https://graph.facebook.com/v2.3/oauth/access_token?"
 
 if os.environ['SERVER_SOFTWARE'].startswith('Development'):
-  REDIRECT_URL = "http://localhost:8080/login"
+  REDIRECT_URL = "http://localhost:8080/facebook/login"
 else:
-  REDIRECT_URL = "https://bardemir-api.appspot.com/login"
+  REDIRECT_URL = "https://bardemir-api.appspot.com/facebook/login"
 
 HOME_PAGE="""
 <html>
