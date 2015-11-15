@@ -82,7 +82,7 @@ class SetAppSecret(webapp2.RequestHandler):
     self.response.write('Done')
 
 APPLICATION = webapp2.WSGIApplication([
-  ('/login', LoginPage),
-  ('/appsecret', SetAppSecret),
-  ('/.*', HomePage),
+  ('/facebook/login', LoginPage),
+  ('/facebook/appsecret', SetAppSecret),
+  ('/facebook/.*', HomePage),
 ], debug=True)

@@ -20,10 +20,18 @@ handlers:
 - url: /_ah/spi/.*
   script: api.APPLICATION
 
+- url: (/facebook/.*)
+  script: facebook.login.APPLICATION 
+
+- url: (/facebook/appsecret)
+  script: facebook.login.APPLICATION 
+  login: required
+  secure: always
+
 - url: (/.*)
-  script: login.APPLICATION 
-
-
+  static_files: static/index.html
+  upload: static/index.html
+   
 # Third party libraries that are included in the App Engine SDK must be listed
 # here if you want to use them. See
 # https://developers.google.com/appengine/docs/python/tools/libraries27 for
