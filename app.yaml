@@ -20,13 +20,8 @@ handlers:
 - url: /_ah/spi/.*
   script: api.APPLICATION
 
-- url: (/facebook/.*)
-  script: facebook.login.APPLICATION 
-
-- url: (/facebook/appsecret)
-  script: facebook.login.APPLICATION 
-  login: required
-  secure: always
+- url: (/properties.*)
+  script: properties.properties.APPLICATION 
 
 - url: (/.*)
   static_files: static/index.html

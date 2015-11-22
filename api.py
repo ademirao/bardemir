@@ -5,6 +5,8 @@ as well as those methods defined in an API.
 """
 
 import endpoints
+import json
+from properties.properties import Properties 
 from google.appengine.api import urlfetch
 from protorpc import messages
 from protorpc import message_types
@@ -19,26 +21,26 @@ ANDROID_AUDIENCE = WEB_CLIENT_ID
 
 package = 'Bardemir'
 
-class Event(messages.Message):
+class Post(messages.Message):
     """Greeting that stores a message."""
-    description = messages.StringField(1)
+    title = messages.StringField(1)
+    content = messages.StringField(2)
+    link = messages.StringField(3)
 
 
-class EventsCollection(messages.Message):
-    """Collection of Events."""
-    items = messages.MessageField(Event, 1, repeated=True)
+class PostsCollection(messages.Message):
+    """Collection of Posts."""
+    items = messages.MessageField(Post, 1, repeated=True)
 
-
-
-STORED_EVENTS = EventsCollection(items=[
-    Event(description='Event 1'),
-    Event(description='Event 2'),
+STORED_EVENTS = PostsCollection(items=[
+    Post(title='Post 1'),
+    Post(title='Post 2'),
 ])
 
 # url = "http://www.facebook.com/dialog/oauth?client_id=433202543531394&redirect_url=http://bardemir-api.appspot.com"
 #	result = urlfetch.fetch(url)
-#event = Event()
-#	event.description = result.content
+#post = Post()
+#	post.description = result.content
 
 @endpoints.api(name='bardemir', version='v1',
                allowed_client_ids=[WEB_CLIENT_ID, ANDROID_CLIENT_ID,
@@ -51,28 +53,42 @@ class BardemirService(remote.Service):
             message_types.VoidMessage,
             auth=messages.StringField(1))
 
-    @endpoints.method(AUTH_RESOURCE, Event,
-                      path='listEvents', http_method='POST',
-                      name='events.list')
-    def listEvents(self, request):
-	url = "http://graph.facebook.com/v2.5/me?access_token=%s" % request.auth
-	result = urlfetch.fetch(url)
-	event = Event()
-	event.description = result.content
-	return event
+    @endpoints.method(AUTH_RESOURCE, PostsCollection,
+                      path='listPosts', http_method='POST',
+                      name='posts.list')
+    def list(self, request):
+      bardemir_properties = Properties()
+      if not bardemir_properties or not bardemir_properties.group_id:
+        post = Post()
+        post.description = "No bardemir properties"
+        return post
+        
+      group_id = bardemir_properties.group_id
+      url = "https://graph.facebook.com/v2.5/%s/feed?access_token=%s" % (group_id, request.auth)
+      result = urlfetch.fetch(url)
+      response = json.loads(result.content)
+      posts = []
+      for e in response['data']:
+        if 'message' not in e:
+          continue
+        post = Post()
+        post.title = e['message'].encode('ascii', 'ignore')  
+        posts.append(post)
+
+      return PostsCollection(items=posts)
 
     ID_RESOURCE = endpoints.ResourceContainer(
             message_types.VoidMessage,
             id=messages.IntegerField(1, variant=messages.Variant.INT32))
 
-    @endpoints.method(ID_RESOURCE, Event,
-                      path='event/{id}', http_method='GET',
-                      name='events.getEvent')
-    def getEvent(self, request):
+    @endpoints.method(ID_RESOURCE, Post,
+                      path='post/{id}', http_method='GET',
+                      name='posts.getPost')
+    def getPost(self, request):
         try:
             return STORED_EVENTS.items[request.id]
         except (IndexError, TypeError):
-            raise endpoints.NotFoundException('Event %s not found.' %
+            raise endpoints.NotFoundException('Post %s not found.' %
                                               (request.id,))
 
 
