@@ -4,6 +4,7 @@ Defined here are the ProtoRPC messages needed to define Schemas for methods
 as well as those methods defined in an API.
 """
 
+import pprint
 import endpoints
 import json
 from properties.properties import Properties 
@@ -18,6 +19,7 @@ WEB_CLIENT_ID = 'replace this with your web client application ID'
 ANDROID_CLIENT_ID = 'replace this with your Android client ID'
 IOS_CLIENT_ID = 'replace this with your iOS client ID'
 ANDROID_AUDIENCE = WEB_CLIENT_ID
+PPRINTER = pprint.PrettyPrinter(indent=4)
 
 package = 'Bardemir'
 
@@ -68,11 +70,13 @@ class BardemirService(remote.Service):
       result = urlfetch.fetch(url)
       response = json.loads(result.content)
       posts = []
+
       for e in response['data']:
         if 'message' not in e:
           continue
         post = Post()
         post.title = e['message'].encode('ascii', 'ignore')  
+        PPRINTER.pprint(post)
         posts.append(post)
 
       return PostsCollection(items=posts)

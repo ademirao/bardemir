@@ -38,7 +38,6 @@ def home_page():
 </html>
 """
 
-
 class PropertyHome(webapp2.RequestHandler):
   def get(self):
     self.response.headers['Content-Type'] = 'text/html charset=utf-8'
