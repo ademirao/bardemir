@@ -7,6 +7,8 @@ as well as those methods defined in an API.
 import pprint
 import endpoints
 import json
+from messages import Profile, Ride, RidesCollection, Hitchhike, HitchhikesCollection
+from messages import STORED_HITCHHIKES, STORED_RIDES
 from properties.properties import Properties 
 from google.appengine.api import urlfetch
 from protorpc import messages
@@ -22,27 +24,23 @@ ANDROID_AUDIENCE = WEB_CLIENT_ID
 PPRINTER = pprint.PrettyPrinter(indent=4)
 
 package = 'Bardemir'
+class EmptyRequest(messages.Message):
+  auth=messages.StringField(1)
 
-class Post(messages.Message):
-    """Greeting that stores a message."""
-    title = messages.StringField(1)
-    content = messages.StringField(2)
-    link = messages.StringField(3)
+class UpsertRideRequest(messages.Message):
+  auth=messages.StringField(1)
+  ride=messages.MessageField(Ride, 2)
 
+class UpsertRideResponse(messages.Message):
+  ride = messages.MessageField(Ride, 1)
 
-class PostsCollection(messages.Message):
-    """Collection of Posts."""
-    items = messages.MessageField(Post, 1, repeated=True)
+class UpsertHitchhikeRequest(messages.Message):
+  auth=messages.StringField(1)
+  hitchhike=messages.MessageField(Hitchhike, 2)
+ 
+class UpsertHitchhikeResponse(messages.Message):
+  hitchhike=messages.MessageField(Hitchhike, 2)
 
-STORED_EVENTS = PostsCollection(items=[
-    Post(title='Post 1'),
-    Post(title='Post 2'),
-])
-
-# url = "http://www.facebook.com/dialog/oauth?client_id=433202543531394&redirect_url=http://bardemir-api.appspot.com"
-#	result = urlfetch.fetch(url)
-#post = Post()
-#	post.description = result.content
 
 @endpoints.api(name='bardemir', version='v1',
                allowed_client_ids=[WEB_CLIENT_ID, ANDROID_CLIENT_ID,
@@ -50,50 +48,47 @@ STORED_EVENTS = PostsCollection(items=[
                audiences=[ANDROID_AUDIENCE])
 class BardemirService(remote.Service):
     """Bardemir API v1."""
+    @endpoints.method(UpsertRideRequest, UpsertRideResponse,
+                      http_method='POST',
+                      name='rides.upsert')
+    def upsertRide(self, request):
+      STORED_RIDES.items.append(request.ride)
+      return UpsertRideResponse(ride=request.ride);
 
-    AUTH_RESOURCE = endpoints.ResourceContainer(
-            message_types.VoidMessage,
-            auth=messages.StringField(1))
+    @endpoints.method(UpsertHitchhikeRequest, UpsertHitchhikeResponse,
+                      http_method='POST',
+                      name='hitchhike.upsert')
+    def upsertHitchhike(self, request):
+      STORED_HITCHHIKES.items.append(request.hitchhike)
+      return UpsertHitchhikeResponse(hitchhike=request.hitchhike);
 
-    @endpoints.method(AUTH_RESOURCE, PostsCollection,
-                      path='listPosts', http_method='POST',
-                      name='posts.list')
-    def list(self, request):
+    @endpoints.method(EmptyRequest, RidesCollection,
+                      http_method='GET',
+                      name='rides.list')
+    def listRides(self, request):
+      return RidesCollection(items=STORED_RIDES.items);
+
+    @endpoints.method(EmptyRequest, HitchhikesCollection,
+                      http_method='GET',
+                      name='hitchhike.list')
+    def listHitchhikes(self, request):
+      return HitchhikesCollection(items=STORED_HITCHHIKES.items);
+
+    @endpoints.method(EmptyRequest, Profile,
+                      http_method='GET',
+                      name='profile.get')
+    def getProfile(self, request):
       bardemir_properties = Properties()
-      if not bardemir_properties or not bardemir_properties.group_id:
-        post = Post()
-        post.description = "No bardemir properties"
-        return post
-        
-      group_id = bardemir_properties.group_id
-      url = "https://graph.facebook.com/v2.5/%s/feed?access_token=%s" % (group_id, request.auth)
-      result = urlfetch.fetch(url)
-      response = json.loads(result.content)
-      posts = []
-
-      for e in response['data']:
-        if 'message' not in e:
-          continue
-        post = Post()
-        post.title = e['message'].encode('ascii', 'ignore')  
-        PPRINTER.pprint(post)
-        posts.append(post)
-
-      return PostsCollection(items=posts)
-
-    ID_RESOURCE = endpoints.ResourceContainer(
-            message_types.VoidMessage,
-            id=messages.IntegerField(1, variant=messages.Variant.INT32))
-
-    @endpoints.method(ID_RESOURCE, Post,
-                      path='post/{id}', http_method='GET',
-                      name='posts.getPost')
-    def getPost(self, request):
-        try:
-            return STORED_EVENTS.items[request.id]
-        except (IndexError, TypeError):
-            raise endpoints.NotFoundException('Post %s not found.' %
-                                              (request.id,))
+      pictureUrl= "https://graph.facebook.com/v2.5/me/picture?access_token=%s&redirect=false&type=small&width=20" % (request.auth)
+      profileUrl = "https://graph.facebook.com/v2.5/me?access_token=%s&redirect=false" % (request.auth)
+      resultPicture = urlfetch.fetch(pictureUrl)
+      pictureResponse = json.loads(resultPicture.content)
+      resultProfile = urlfetch.fetch(profileUrl)
+      profileResponse = json.loads(resultProfile.content)
+      return Profile(
+          id=profileResponse['id'],
+          name=profileResponse['name'],
+          photoUrl=pictureResponse['data']['url'])
 
 
 APPLICATION = endpoints.api_server([BardemirService])
