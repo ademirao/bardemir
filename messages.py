@@ -27,3 +27,27 @@ class HitchhikesCollection(messages.Message):
 
 STORED_HITCHHIKES = HitchhikesCollection(items=[])
 
+def upsert(obj, items):
+  for i, item in enumerate(items):
+    if (obj.id == item.id):
+      def replacer():
+        items[i] = obj
+
+      return replacer, items[i] 
+
+  def appender():
+    items.append(obj)
+
+  return appender, None
+
+
+def remove(id, items):
+  for i, item in enumerate(items):
+    if (id == item.id):
+      def remover():
+        del items[i]
+
+      return remover, items[i] 
+
+  return lambda: None, None
+
