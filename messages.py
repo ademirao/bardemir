@@ -9,6 +9,7 @@ class Ride(messages.Message):
   id = messages.StringField(1)
   owner = messages.MessageField(Profile, 2)
   directions = messages.StringField(3)
+  time = messages.StringField(4)
 
 class RidesCollection(messages.Message):
   """Collection of Rides"""
@@ -26,6 +27,10 @@ class HitchhikesCollection(messages.Message):
   items = messages.MessageField(Hitchhike, 1, repeated=True)
 
 STORED_HITCHHIKES = HitchhikesCollection(items=[])
+
+class Event(messages.Message):
+  name = messages.StringField(1)
+  time = messages.StringField(2)
 
 def upsert(obj, items):
   for i, item in enumerate(items):

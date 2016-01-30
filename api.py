@@ -7,11 +7,11 @@ as well as those methods defined in an API.
 import pprint
 import endpoints
 
-
-from bardemir_producer import BardemirProducer
-from messages import Profile, Ride, RidesCollection, Hitchhike, HitchhikesCollection
-from messages import STORED_HITCHHIKES, STORED_RIDES, upsert
 from properties.properties import Properties 
+from bardemir_producer import BardemirProducer
+from messages import Profile, Ride, RidesCollection, Hitchhike, HitchhikesCollection, Event
+from messages import STORED_HITCHHIKES, STORED_RIDES, upsert
+
 from google.appengine.api import urlfetch
 from protorpc import messages
 from protorpc import message_types
@@ -47,6 +47,9 @@ class UpsertHitchhikeResponse(messages.Message):
 class RemoveRequest(messages.Message):
   auth=messages.StringField(1)
   id=messages.StringField(2)
+
+class EventsResponse(messages.Message):
+  events = messages.MessageField(Event, 1, repeated=True)
 
 def pprint(result):
   print(result)
@@ -87,7 +90,23 @@ class BardemirService(remote.Service):
                       name='hitchhike.remove')
     def removeHitchhike(self, request):
       return BardemirProducer(FacebookApi(request.auth)).removeHitchhike(
-          request.id).result
+          request.id).then(lambda r: message_types.VoidMessage()).wait().result
+
+    @endpoints.method(EmptyRequest, message_types.VoidMessage,
+                      http_method='POST',
+                      name='admin.setToken')
+    def setToken (self, request):
+      def setToken(profile):
+        if profile.id != Properties().admin_facebook_id:
+          print("NOT SETTING!")
+          return message_types.VoidMessage() 
+
+        prop = Properties()
+        prop.admin_auth_token = request.auth
+        prop.put()
+        return message_types.VoidMessage();
+
+      return BardemirProducer(FacebookApi(request.auth)).getProfile().then(setToken).wait().result
 
     @endpoints.method(EmptyRequest, RidesCollection,
                       http_method='GET',
@@ -100,6 +119,13 @@ class BardemirService(remote.Service):
                       name='hitchhike.list')
     def listHitchhikes(self, request):
       return HitchhikesCollection(items=STORED_HITCHHIKES.items);
+
+    @endpoints.method(EmptyRequest, EventsResponse,
+                      http_method='GET',
+                      name='events.get')
+    def events(self, request):
+      return BardemirProducer(FacebookApi(request.auth)).getEvents().then(
+          lambda events: EventsResponse(events = events)).wait().result
 
     @endpoints.method(EmptyRequest, Profile,
                       http_method='GET',

@@ -1,5 +1,6 @@
 
-from messages import Profile, Ride, RidesCollection, Hitchhike, HitchhikesCollection
+from properties.properties import Properties 
+from messages import Profile, Ride, RidesCollection, Hitchhike, HitchhikesCollection, Event
 from promises import Promise
 import json
 from messages import STORED_HITCHHIKES, STORED_RIDES, upsert, remove
@@ -57,7 +58,7 @@ class BardemirProducer:
         return None;
 
       if o.owner.id != session_user_id:
-        return None;
+        None;
 
       remover()
       return o
@@ -74,7 +75,6 @@ class BardemirProducer:
     return self.facebook_api.id().then(
         lambda response: json.loads(response.content)['id'])
 
-
   def getProfile(self):
     def getProfileDone(result):
       profileResponse = json.loads(result[0].content)
@@ -87,5 +87,12 @@ class BardemirProducer:
     return Promise.all([self.facebook_api.me(), self.facebook_api.picture()]
         ).then(getProfileDone)
 
+  def getEvents(self):
+    def getEventsDone(result):
+      eventsResponse = json.loads(result.content)
+      events = []
+      for event in eventsResponse['data']:
+        events.append(Event(name = event['name'], time = event['start_time']))
+      return events
 
-
+    return self.facebook_api.events(Properties().group_id).then(getEventsDone)
