@@ -98,7 +98,7 @@ class BardemirService(remote.Service):
     def setToken (self, request):
       def setToken(profile):
         if profile.id != Properties().admin_facebook_id:
-          print("NOT SETTING!")
+          print("NOT SETTING! " + str(profile.id) + " != " + str(Properties().admin_facebook_id))
           return message_types.VoidMessage() 
 
         prop = Properties()
